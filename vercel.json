@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "name": "whatsapp-marketplace-api",
   "builds": [
     {
       "src": "src/api/**/*.js",
@@ -23,5 +24,7 @@
     "BUSINESS_NAME": "@business_name",
     "BUSINESS_PHONE": "@business_phone",
     "ADMIN_PHONE": "@admin_phone"
-  }
+  },
+  "installCommand": "echo 'Note: This config is for API endpoints only. Deploy WhatsApp bot to Railway/Render instead.'",
+  "framework": null
 }
