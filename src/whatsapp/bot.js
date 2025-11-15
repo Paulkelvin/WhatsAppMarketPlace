@@ -17,6 +17,7 @@ const logger = pino({
 
 let sock;
 let isConnected = false;
+let hasNotifiedAdmin = false; // Track if admin was notified
 
 /**
  * Initialize WhatsApp Bot
@@ -107,15 +108,16 @@ export const initializeBot = async () => {
 
       if (connection === 'close') {
         const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
         
-        logger.info('Connection closed. Reconnect:', shouldReconnect);
+        logger.info(`Connection closed. Status code: ${statusCode}, Reconnect: ${shouldReconnect}`);
         
         if (shouldReconnect) {
-          // Reconnect after 5 seconds
+          // Reconnect after 10 seconds to avoid rapid reconnects
           setTimeout(() => {
             logger.info('Attempting to reconnect...');
             initializeBot();
-          }, 5000);
+          }, 10000);
         } else {
           logger.error('Logged out. Please delete auth_info_baileys folder and restart.');
           process.exit(0);
@@ -128,9 +130,10 @@ export const initializeBot = async () => {
         console.log('\n🚀 TechHub WhatsApp Marketplace is now LIVE!\n');
         console.log('Ready to receive messages...\n');
         
-        // Send startup notification to admin
+        // Send startup notification to admin only once
         const adminPhone = process.env.ADMIN_PHONE;
-        if (adminPhone) {
+        if (adminPhone && !hasNotifiedAdmin) {
+          hasNotifiedAdmin = true;
           await sendMessage(adminPhone, '🤖 *TechHub Bot Online*\n\nMarketplace automation is now active and ready to serve customers! 🚀');
         }
       }
