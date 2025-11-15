@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import express from 'express';
 import { initializeBot } from './whatsapp/bot.js';
 import pino from 'pino';
 
@@ -13,12 +14,33 @@ const logger = pino({
   }
 });
 
+// Create Express app for health checks (Railway needs this)
+const app = express();
+const PORT = process.env.PORT || 3000;
+
 /**
  * Main application entry point
  */
 const startApp = async () => {
   try {
     logger.info('🚀 Starting TechHub WhatsApp Marketplace...');
+
+    // Start HTTP server for Railway health checks
+    app.get('/', (req, res) => {
+      res.json({ 
+        status: 'online', 
+        service: 'TechHub WhatsApp Marketplace',
+        timestamp: new Date().toISOString()
+      });
+    });
+
+    app.get('/health', (req, res) => {
+      res.json({ status: 'ok' });
+    });
+
+    const server = app.listen(PORT, () => {
+      logger.info(`✅ HTTP server listening on port ${PORT}`);
+    });
 
     // Check required environment variables
     const requiredEnvVars = [
@@ -45,11 +67,13 @@ const startApp = async () => {
     // Handle process termination
     process.on('SIGINT', async () => {
       logger.info('Shutting down gracefully...');
+      server.close();
       process.exit(0);
     });
 
     process.on('SIGTERM', async () => {
       logger.info('Shutting down gracefully...');
+      server.close();
       process.exit(0);
     });
 
