@@ -46,6 +46,8 @@ export const initializeBot = async () => {
     const usePairingCode = process.env.USE_PAIRING_CODE === 'true';
     const pairingNumber = process.env.BUSINESS_PHONE?.replace(/[^0-9]/g, ''); // Remove non-digits
 
+    logger.info(`Pairing mode: ${usePairingCode ? 'CODE' : 'QR'}, Phone: ${pairingNumber || 'N/A'}`);
+
     // Create WhatsApp socket
     sock = makeWASocket({
       version,
@@ -58,24 +60,35 @@ export const initializeBot = async () => {
       generateHighQualityLinkPreview: true,
       markOnlineOnConnect: true,
       defaultQueryTimeoutMs: 60000,
-      ...(usePairingCode && pairingNumber && !state.creds.registered ? {
-        browser: ['TechHub Marketplace', 'Chrome', '1.0.0']
-      } : {})
+      browser: ['TechHub Marketplace', 'Chrome', '1.0.0']
     });
 
-    // Request pairing code if enabled
-    if (usePairingCode && pairingNumber && !state.creds.registered) {
-      setTimeout(async () => {
-        try {
-          const code = await sock.requestPairingCode(pairingNumber);
-          console.log('\n🔗 PAIRING CODE:\n');
-          console.log(`   ${code}\n`);
-          console.log('📱 Enter this code in WhatsApp:');
-          console.log('   Settings > Linked Devices > Link a Device > Link with Phone Number\n');
-        } catch (error) {
-          logger.error('Error requesting pairing code:', error);
-        }
-      }, 3000);
+    // Request pairing code if enabled and not already registered
+    if (usePairingCode && pairingNumber) {
+      if (!state.creds.registered) {
+        logger.info('Requesting pairing code for number:', pairingNumber);
+        setTimeout(async () => {
+          try {
+            const code = await sock.requestPairingCode(pairingNumber);
+            console.log('\n╔════════════════════════════════════╗');
+            console.log('║     🔗 PAIRING CODE                ║');
+            console.log('╚════════════════════════════════════╝\n');
+            console.log(`       ${code.match(/.{1,4}/g).join('-')}\n`);
+            console.log('📱 Steps to link:');
+            console.log('   1. Open WhatsApp on phone: ' + pairingNumber);
+            console.log('   2. Go to Settings > Linked Devices');
+            console.log('   3. Tap "Link a Device"');
+            console.log('   4. Tap "Link with Phone Number"');
+            console.log('   5. Enter the code above\n');
+            logger.info('Pairing code generated successfully');
+          } catch (error) {
+            logger.error('Error requesting pairing code:', error.message);
+            logger.info('Falling back to QR code...');
+          }
+        }, 5000);
+      } else {
+        logger.info('Device already registered, skipping pairing code');
+      }
     }
 
     // Save credentials whenever they're updated
