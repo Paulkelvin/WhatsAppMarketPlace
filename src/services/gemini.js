@@ -50,14 +50,25 @@ export const generateCustomerResponse = async (context) => {
       conversationHistory
     );
 
+    logger.info(`Sending request to Gemini AI...`);
     const result = await model.generateContent(prompt);
     const response = result.response.text();
+    
+    logger.info(`Gemini raw response: ${response.substring(0, 200)}...`);
+
+    // Clean up response - remove markdown code blocks if present
+    let cleanedResponse = response.trim();
+    cleanedResponse = cleanedResponse.replace(/```json\n?/g, '').replace(/```\n?/g, '');
 
     // Parse AI response (expecting JSON format)
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(response);
-    } catch {
+      parsedResponse = JSON.parse(cleanedResponse);
+      logger.info(`✅ Successfully parsed JSON response with action: ${parsedResponse.action}`);
+    } catch (parseError) {
+      logger.error('Failed to parse JSON response:', parseError.message);
+      logger.error('Raw response was:', response);
+      
       // If not JSON, wrap in default structure
       parsedResponse = {
         message: response,
@@ -67,17 +78,17 @@ export const generateCustomerResponse = async (context) => {
       };
     }
 
-    logger.info(`AI Response generated for intent: ${parsedResponse.action}`);
     return parsedResponse;
 
   } catch (error) {
-    logger.error('AI response generation error:', error);
+    logger.error('❌ AI response generation error:', error.message);
+    logger.error('Error details:', error);
     
-    // Fallback response
+    // Fallback response with helpful message
     return {
-      message: "I'm here to help! Let me connect you with our support team for better assistance.",
-      action: 'escalate',
-      requiresHuman: true,
+      message: "👋 Welcome to TechHub! How can I help you today?\n\n📱 Reply with:\n- 'Products' to browse\n- 'iPhone' for smartphones\n- 'Laptop' for computers\n- Product name to order",
+      action: 'general_inquiry',
+      requiresHuman: false,
       collectData: {}
     };
   }
@@ -140,7 +151,8 @@ ${history && history.length > 0 ? history.slice(-3).map(h =>
 3. Guide through ordering process step-by-step
 4. Always confirm order details before processing
 5. Be helpful with delivery and payment questions
-6. Escalate to human for: refunds, complaints, technical issues, damaged products
+6. ONLY escalate to human for serious issues: refunds, complaints, damaged products, account issues
+7. DO NOT escalate for simple greetings, product questions, or browsing requests - handle these yourself!
 
 ## Customer Message
 "${message}"
@@ -162,6 +174,12 @@ Respond to the customer naturally and helpfully. Your response MUST be valid JSO
     "quantity": 1
   }
 }
+
+CRITICAL RULES:
+- For "Hi", "Hello", greetings → action: "general_inquiry", requiresHuman: false
+- For product requests, "show products", "what do you sell" → action: "browse_products", requiresHuman: false
+- For "I want X", "buy X" → action: "place_order", requiresHuman: false
+- ONLY use action: "escalate" for complaints, refunds, or damaged items
 
 Important: Respond ONLY with valid JSON. No markdown formatting, no code blocks, just pure JSON.`;
 
