@@ -35,19 +35,41 @@ export const initializeBot = async () => {
     const { version, isLatest } = await fetchLatestBaileysVersion();
     logger.info(`Using Baileys v${version.join('.')}, isLatest: ${isLatest}`);
 
+    // Use pairing code if phone number is provided
+    const usePairingCode = process.env.USE_PAIRING_CODE === 'true';
+    const pairingNumber = process.env.BUSINESS_PHONE?.replace(/[^0-9]/g, ''); // Remove non-digits
+
     // Create WhatsApp socket
     sock = makeWASocket({
       version,
       logger: pino({ level: 'silent' }),
-      printQRInTerminal: false,
+      printQRInTerminal: !usePairingCode,
       auth: {
         creds: state.creds,
         keys: makeCacheableSignalKeyStore(state.keys, logger)
       },
       generateHighQualityLinkPreview: true,
       markOnlineOnConnect: true,
-      defaultQueryTimeoutMs: 60000
+      defaultQueryTimeoutMs: 60000,
+      ...(usePairingCode && pairingNumber && !state.creds.registered ? {
+        browser: ['TechHub Marketplace', 'Chrome', '1.0.0']
+      } : {})
     });
+
+    // Request pairing code if enabled
+    if (usePairingCode && pairingNumber && !state.creds.registered) {
+      setTimeout(async () => {
+        try {
+          const code = await sock.requestPairingCode(pairingNumber);
+          console.log('\n🔗 PAIRING CODE:\n');
+          console.log(`   ${code}\n`);
+          console.log('📱 Enter this code in WhatsApp:');
+          console.log('   Settings > Linked Devices > Link a Device > Link with Phone Number\n');
+        } catch (error) {
+          logger.error('Error requesting pairing code:', error);
+        }
+      }, 3000);
+    }
 
     // Save credentials whenever they're updated
     sock.ev.on('creds.update', saveCreds);
