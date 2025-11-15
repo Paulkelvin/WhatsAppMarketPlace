@@ -1,0 +1,50 @@
+{
+  "name": "techhub-whatsapp-marketplace",
+  "version": "1.0.0",
+  "description": "Advanced WhatsApp marketplace automation with AI-powered customer service",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "bot": "node src/index.js",
+    "seed": "node src/data/seed.js",
+    "verify": "node scripts/verify-setup.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "vercel-build": "echo 'Build complete'"
+  },
+  "keywords": [
+    "whatsapp",
+    "baileys",
+    "marketplace",
+    "ai",
+    "gemini",
+    "ecommerce",
+    "nigeria"
+  ],
+  "author": "TechHub Nigeria",
+  "license": "MIT",
+  "dependencies": {
+    "@whiskeysockets/baileys": "^6.6.0",
+    "@google/generative-ai": "^0.2.1",
+    "mongoose": "^8.0.3",
+    "cloudinary": "^1.41.0",
+    "qrcode-terminal": "^0.12.0",
+    "pino": "^8.17.2",
+    "pino-pretty": "^10.3.1",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.2",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "node-cache": "^5.1.2",
+    "uuid": "^9.0.1",
+    "paystack": "^2.0.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2",
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
