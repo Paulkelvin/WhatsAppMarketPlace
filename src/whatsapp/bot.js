@@ -6,6 +6,7 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys';
 import qrcode from 'qrcode-terminal';
 import pino from 'pino';
+import fs from 'fs';
 import { handleIncomingMessage } from './handlers/message.js';
 import { connectDB } from '../services/database.js';
 import { initializeGemini } from '../services/gemini.js';
@@ -27,6 +28,12 @@ export const initializeBot = async () => {
     
     // Initialize AI
     initializeGemini();
+
+    // Clear old auth if forced (for switching numbers)
+    if (process.env.FORCE_NEW_AUTH === 'true' && fs.existsSync('auth_info_baileys')) {
+      logger.info('🔄 Clearing old authentication for new number...');
+      fs.rmSync('auth_info_baileys', { recursive: true, force: true });
+    }
 
     // Load auth state
     const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
