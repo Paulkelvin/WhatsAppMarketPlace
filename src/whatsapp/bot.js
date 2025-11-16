@@ -45,10 +45,10 @@ export const initializeBot = async () => {
     logger.info(`Using Baileys v${version.join('.')}, isLatest: ${isLatest}`);
 
     // Use pairing code if phone number is provided
-    const usePairingCode = false; // Force QR code mode only
+    const usePairingCode = true; // Switch back to pairing code
     const pairingNumber = process.env.BUSINESS_PHONE?.replace(/[^0-9]/g, ''); // Remove non-digits
 
-    logger.info(`Pairing mode: QR (forced), Phone: ${pairingNumber || 'N/A'}`);
+    logger.info(`Pairing mode: ${usePairingCode ? 'CODE' : 'QR'}, Phone: ${pairingNumber || 'N/A'}`);
 
     // Create WhatsApp socket
     sock = makeWASocket({
@@ -68,19 +68,46 @@ export const initializeBot = async () => {
     // Save credentials whenever they're updated
     sock.ev.on('creds.update', saveCreds);
 
+    // Request pairing code if enabled
+    if (usePairingCode && !sock.authState.creds.registered && pairingNumber) {
+      setTimeout(async () => {
+        try {
+          const code = await sock.requestPairingCode(pairingNumber);
+          logger.info(`🔐 Pairing Code: ${code}`);
+          console.log('\n═══════════════════════════════════════');
+          console.log('📱 PAIRING CODE FOR WHATSAPP');
+          console.log('═══════════════════════════════════════');
+          console.log(`\n   CODE: ${code}\n`);
+          console.log('Instructions:');
+          console.log('1. Open WhatsApp on phone: ' + pairingNumber);
+          console.log('2. Go to Settings > Linked Devices');
+          console.log('3. Tap "Link a Device"');
+          console.log('4. Tap "Link with phone number instead"');
+          console.log('5. Enter this code: ' + code);
+          console.log('\n🌐 Or visit: https://web-whatsappmarketplace-env.up.railway.app/code');
+          console.log('═══════════════════════════════════════\n');
+          
+          // Send code to web endpoint
+          updateQR(code);
+        } catch (error) {
+          logger.error('Failed to request pairing code:', error);
+        }
+      }, 3000);
+    }
+
     // Handle connection updates
     sock.ev.on('connection.update', async (update) => {
       const { connection, lastDisconnect, qr } = update;
 
-      // Show QR code for pairing
-      if (qr) {
+      // Show QR code for pairing (fallback)
+      if (qr && !usePairingCode) {
         // Send QR to web endpoint
         updateQR(qr);
         
         console.log('\n📱 Scan this QR code with WhatsApp:\n');
         qrcode.generate(qr, { small: true });
         console.log('\nOpen WhatsApp > Linked Devices > Link a Device\n');
-        console.log(`\n🌐 Or visit: https://your-railway-url.railway.app/qr\n`);
+        console.log(`\n🌐 Or visit: https://web-whatsappmarketplace-env.up.railway.app/qr\n`);
       }
 
       if (connection === 'close') {

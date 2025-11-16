@@ -46,6 +46,66 @@ const startApp = async () => {
       res.json({ status: 'ok' });
     });
 
+    app.get('/code', (req, res) => {
+      if (!latestQR) {
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>WhatsApp Pairing Code</title>
+              <meta http-equiv="refresh" content="3">
+              <style>
+                body { font-family: Arial; text-align: center; padding: 50px; background: #f0f0f0; }
+                .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 600px; margin: 0 auto; }
+                h1 { color: #25D366; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>🔄 Generating Pairing Code...</h1>
+                <p>The bot is initializing. This page will auto-refresh.</p>
+              </div>
+            </body>
+          </html>
+        `);
+      } else {
+        // Display pairing code (it's just a string like "ABCD-1234")
+        res.send(`
+          <!DOCTYPE html>
+          <html>
+            <head>
+              <title>WhatsApp Pairing Code</title>
+              <meta http-equiv="refresh" content="120">
+              <style>
+                body { font-family: Arial; text-align: center; padding: 20px; background: #f0f0f0; }
+                .container { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 600px; margin: 0 auto; }
+                h1 { color: #25D366; margin-bottom: 10px; }
+                .code { font-size: 48px; font-weight: bold; color: #128C7E; letter-spacing: 5px; margin: 30px 0; padding: 20px; background: #f8f9fa; border-radius: 10px; border: 3px dashed #25D366; }
+                .instructions { color: #666; margin: 20px 0; line-height: 1.8; text-align: left; }
+                .step { margin: 10px 0; }
+                .warning { color: #ff6b6b; font-size: 14px; margin-top: 20px; font-weight: bold; }
+                .phone { color: #25D366; font-weight: bold; }
+              </style>
+            </head>
+            <body>
+              <div class="container">
+                <h1>🔐 WhatsApp Pairing Code</h1>
+                <div class="code">${latestQR}</div>
+                <div class="instructions">
+                  <div class="step"><strong>1.</strong> Open WhatsApp on phone <span class="phone">08169826503</span></div>
+                  <div class="step"><strong>2.</strong> Go to <strong>Settings → Linked Devices</strong></div>
+                  <div class="step"><strong>3.</strong> Tap <strong>"Link a Device"</strong></div>
+                  <div class="step"><strong>4.</strong> Tap <strong>"Link with phone number instead"</strong></div>
+                  <div class="step"><strong>5.</strong> Enter the code above</div>
+                </div>
+                <p class="warning">⏱️ Code expires in 2 minutes. Page auto-refreshes.</p>
+              </div>
+            </body>
+          </html>
+        `);
+      }
+    });
+
     app.get('/qr', async (req, res) => {
       if (!latestQR) {
         res.send(`
