@@ -59,10 +59,12 @@ const startApp = async () => {
       process.exit(1);
     }
 
-    // Initialize WhatsApp bot
-    await initializeBot();
-
     logger.info('✅ Application started successfully');
+
+    // Initialize WhatsApp bot in background (don't block startup)
+    initializeBot().catch(error => {
+      logger.error('❌ Failed to initialize WhatsApp bot:', error);
+    });
 
     // Handle process termination
     process.on('SIGINT', async () => {
