@@ -31,7 +31,7 @@ export const initializeBot = async () => {
     initializeGemini();
 
     // Clear old auth if forced (for switching numbers)
-    if (process.env.FORCE_NEW_AUTH === 'true' && fs.existsSync('auth_info_baileys')) {
+    if ((process.env.FORCE_NEW_AUTH === 'true' || process.env.RESET_AUTH === 'true') && fs.existsSync('auth_info_baileys')) {
       logger.info('🔄 Clearing old authentication for new number...');
       fs.rmSync('auth_info_baileys', { recursive: true, force: true });
     }
@@ -44,16 +44,16 @@ export const initializeBot = async () => {
     logger.info(`Using Baileys v${version.join('.')}, isLatest: ${isLatest}`);
 
     // Use pairing code if phone number is provided
-    const usePairingCode = process.env.USE_PAIRING_CODE === 'true';
+    const usePairingCode = false; // Force QR code mode only
     const pairingNumber = process.env.BUSINESS_PHONE?.replace(/[^0-9]/g, ''); // Remove non-digits
 
-    logger.info(`Pairing mode: ${usePairingCode ? 'CODE' : 'QR'}, Phone: ${pairingNumber || 'N/A'}`);
+    logger.info(`Pairing mode: QR (forced), Phone: ${pairingNumber || 'N/A'}`);
 
     // Create WhatsApp socket
     sock = makeWASocket({
       version,
       logger: pino({ level: 'silent' }),
-      printQRInTerminal: !usePairingCode,
+      printQRInTerminal: true, // Always print QR
       auth: {
         creds: state.creds,
         keys: makeCacheableSignalKeyStore(state.keys, logger)
@@ -63,34 +63,6 @@ export const initializeBot = async () => {
       defaultQueryTimeoutMs: 60000,
       browser: ['TechHub Marketplace', 'Chrome', '1.0.0']
     });
-
-    // Request pairing code if enabled and not already registered
-    if (usePairingCode && pairingNumber) {
-      if (!state.creds.registered) {
-        logger.info('Requesting pairing code for number:', pairingNumber);
-        setTimeout(async () => {
-          try {
-            const code = await sock.requestPairingCode(pairingNumber);
-            console.log('\n╔════════════════════════════════════╗');
-            console.log('║     🔗 PAIRING CODE                ║');
-            console.log('╚════════════════════════════════════╝\n');
-            console.log(`       ${code.match(/.{1,4}/g).join('-')}\n`);
-            console.log('📱 Steps to link:');
-            console.log('   1. Open WhatsApp on phone: ' + pairingNumber);
-            console.log('   2. Go to Settings > Linked Devices');
-            console.log('   3. Tap "Link a Device"');
-            console.log('   4. Tap "Link with Phone Number"');
-            console.log('   5. Enter the code above\n');
-            logger.info('Pairing code generated successfully');
-          } catch (error) {
-            logger.error('Error requesting pairing code:', error.message);
-            logger.info('Falling back to QR code...');
-          }
-        }, 5000);
-      } else {
-        logger.info('Device already registered, skipping pairing code');
-      }
-    }
 
     // Save credentials whenever they're updated
     sock.ev.on('creds.update', saveCreds);
