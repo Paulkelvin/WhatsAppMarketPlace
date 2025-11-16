@@ -10,6 +10,7 @@ import fs from 'fs';
 import { handleIncomingMessage } from './handlers/message.js';
 import { connectDB } from '../services/database.js';
 import { initializeGemini } from '../services/gemini.js';
+import { updateQR } from '../index.js';
 
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info'
@@ -73,9 +74,13 @@ export const initializeBot = async () => {
 
       // Show QR code for pairing
       if (qr) {
+        // Send QR to web endpoint
+        updateQR(qr);
+        
         console.log('\n📱 Scan this QR code with WhatsApp:\n');
         qrcode.generate(qr, { small: true });
         console.log('\nOpen WhatsApp > Linked Devices > Link a Device\n');
+        console.log(`\n🌐 Or visit: https://your-railway-url.railway.app/qr\n`);
       }
 
       if (connection === 'close') {
