@@ -11,6 +11,7 @@ import { handleIncomingMessage } from './handlers/message.js';
 import { connectDB } from '../services/database.js';
 import { initializeGemini } from '../services/gemini.js';
 import { updateQR } from '../index.js';
+import { useMongoAuthState } from '../services/mongoAuth.js';
 
 const logger = pino({
   level: process.env.LOG_LEVEL || 'info'
@@ -31,14 +32,11 @@ export const initializeBot = async () => {
     // Initialize AI
     initializeGemini();
 
-    // Clear old auth if forced (for switching numbers)
-    if ((process.env.FORCE_NEW_AUTH === 'true' || process.env.RESET_AUTH === 'true') && fs.existsSync('auth_info_baileys')) {
-      logger.info('🔄 Clearing old authentication for new number...');
-      fs.rmSync('auth_info_baileys', { recursive: true, force: true });
-    }
-
-    // Load auth state
-    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
+    // Use MongoDB for auth state (persists across Railway restarts)
+    const { state, saveCreds } = await useMongoAuthState(
+      process.env.MONGODB_URI,
+      process.env.SESSION_NAME || 'techhub-session'
+    );
     
     // Fetch latest Baileys version
     const { version, isLatest } = await fetchLatestBaileysVersion();
