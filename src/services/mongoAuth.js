@@ -71,12 +71,15 @@ export const useMongoAuthState = async (mongoUri, sessionId = 'default') => {
   let creds;
   let keys = {};
 
-  if (savedState) {
-    creds = savedState.creds || { noiseKey: null, signedIdentityKey: null, signedPreKey: null };
+  if (savedState && savedState.creds) {
+    creds = savedState.creds;
     keys = savedState.keys || {};
+    console.log('Using saved credentials from MongoDB');
   } else {
-    // Initialize new credentials
-    creds = { noiseKey: null, signedIdentityKey: null, signedPreKey: null };
+    // Initialize empty credentials - Baileys will generate them
+    creds = {};
+    keys = {};
+    console.log('Initializing new credentials');
   }
 
   const saveCreds = async () => {

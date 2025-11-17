@@ -32,6 +32,18 @@ export const initializeBot = async () => {
     // Initialize AI
     initializeGemini();
 
+    // Clear MongoDB auth if forced reset
+    if (process.env.RESET_AUTH === 'true') {
+      logger.info('🔄 Clearing MongoDB authentication...');
+      const { MongoClient } = await import('mongodb');
+      const client = new MongoClient(process.env.MONGODB_URI);
+      await client.connect();
+      const db = client.db('techhub');
+      await db.collection('whatsapp_auth').deleteMany({});
+      await client.close();
+      logger.info('✅ MongoDB auth cleared');
+    }
+
     // Use MongoDB for auth state (persists across Railway restarts)
     const { state, saveCreds } = await useMongoAuthState(
       process.env.MONGODB_URI,
