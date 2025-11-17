@@ -32,30 +32,21 @@ export const initializeBot = async () => {
     // Initialize AI
     initializeGemini();
 
-    // Clear MongoDB auth if forced reset
-    if (process.env.RESET_AUTH === 'true') {
-      logger.info('🔄 Clearing MongoDB authentication...');
-      const { MongoClient } = await import('mongodb');
-      const client = new MongoClient(process.env.MONGODB_URI);
-      await client.connect();
-      const db = client.db('techhub');
-      await db.collection('whatsapp_auth').deleteMany({});
-      await client.close();
-      logger.info('✅ MongoDB auth cleared');
+    // Clear old auth if forced (for switching numbers)
+    if (process.env.RESET_AUTH === 'true' && fs.existsSync('auth_info_baileys')) {
+      logger.info('🔄 Clearing old authentication...');
+      fs.rmSync('auth_info_baileys', { recursive: true, force: true });
     }
 
-    // Use MongoDB for auth state (persists across Railway restarts)
-    const { state, saveCreds } = await useMongoAuthState(
-      process.env.MONGODB_URI,
-      process.env.SESSION_NAME || 'techhub-session'
-    );
+    // Load auth state from file system
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info_baileys');
     
     // Fetch latest Baileys version
     const { version, isLatest } = await fetchLatestBaileysVersion();
     logger.info(`Using Baileys v${version.join('.')}, isLatest: ${isLatest}`);
 
     // Use pairing code if phone number is provided
-    const usePairingCode = true; // Switch back to pairing code
+    const usePairingCode = false; // QR code is more stable
     const pairingNumber = process.env.BUSINESS_PHONE?.replace(/[^0-9]/g, ''); // Remove non-digits
 
     logger.info(`Pairing mode: ${usePairingCode ? 'CODE' : 'QR'}, Phone: ${pairingNumber || 'N/A'}`);
